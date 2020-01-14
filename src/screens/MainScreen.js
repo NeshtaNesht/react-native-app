@@ -1,17 +1,29 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Image, Dimensions } from "react-native";
 import { AddTodo } from "../components/AddTodo";
 import { Todo } from "../components/Todo";
 import { THEME } from "../theme";
 import { TodoContext } from "../context/todo/todoContext";
 import { ScreenContext } from "../context/screens/screenContext";
+import { AppLoader } from "../components/ui/AppLoader";
 
 export const MainScreen = () => {
-    const { addTodo, todos, removeTodo } = useContext(TodoContext);
+    const { addTodo, todos, removeTodo, fetchTodos, loading, error } = useContext(TodoContext);
     const { changeScreen } = useContext(ScreenContext);
 
-    // Ширины контента при повороте экрана
+    // Ширина контента при повороте экрана
     const width = Dimensions.get("window").width - THEME.PADDING_HORIZONTAL * 2;
+    // ДОПИСАТЬ КОММЕНТАРИИ!!!!!!!!!!!
+    //const loadTodos = useCallback(async () => await fetchTodos, [fetchTodos]);
+    useEffect(() => {
+        // loadTodos() - не работает
+        fetchTodos()
+    }, []);
+
+    if (loading) {
+        return <AppLoader />;
+    }
+
     let content = (
         <View style={{ ...width }}>
             <FlatList 
