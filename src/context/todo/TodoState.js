@@ -1,90 +1,133 @@
-import React, {useReducer, useContext} from "react";
+import React, { useReducer, useContext } from "react";
 import { Alert } from "react-native";
 import { ScreenContext } from "../screens/screenContext";
 import { TodoContext } from "./todoContext";
 import { todoReducer } from "./todoReducer";
-import { ADD_TODO, REMOVE_TODO, UPDATE_TODO, SHOW_LOADER, HIDE_LOADER, SHOW_ERROR, CLEAR_ERROR, FETCH_TODOS } from "../actionTypes";
+import {
+  ADD_TODO,
+  REMOVE_TODO,
+  UPDATE_TODO,
+  SHOW_LOADER,
+  HIDE_LOADER,
+  SHOW_ERROR,
+  CLEAR_ERROR,
+  FETCH_TODOS
+} from "../actionTypes";
+import { Http } from "../../http";
 
 export const TodoState = ({ children }) => {
-    const initialState = { // Начальный стейт компонента
-        todos: [],
-        loading: false,
-        error: null
-    };
+  const initialState = {
+    // Начальный стейт компонента
+    todos: [],
+    loading: false,
+    error: null
+  };
 
-    const {changeScreen} = useContext(ScreenContext)
+  const { changeScreen } = useContext(ScreenContext);
 
-    // Создание редюсера
-    // useReducer(какой редюсер юзаем, т.е. todoReducer, initialState - начальное состояние)
-    const [state, dispatch] = useReducer(todoReducer, initialState);
+  // Создание редюсера
+  // useReducer(какой редюсер юзаем, т.е. todoReducer, initialState - начальное состояние)
+  const [state, dispatch] = useReducer(todoReducer, initialState);
 
-    // ф-ия addTodo, которую мы диспатчим. С помощью dispatch заявляем, что мы собираемся менять state
-    // В dispatch передаем type и объект
-    const addTodo = async (title) => {
-        const response = await fetch("https://learningapp-7e4bf.firebaseio.com/todos.json", {
-            method: "POST",
-            header: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                title
-            })
-        });
-        const data = await response.json();
-        console.log(data);
-        dispatch({type: ADD_TODO, title, id: data.name});
+  // ф-ия addTodo, которую мы диспатчим. С помощью dispatch заявляем, что мы собираемся менять state
+  // В dispatch передаем type и объект
+  const addTodo = async title => {
+    const data = await Http.post(
+      "https://learningapp-7e4bf.firebaseio.com/todos.json",
+      { title }
+    );
+    dispatch({ type: ADD_TODO, title, id: data.name });
+  };
+
+  const removeTodo = id => {
+    const todo = state.todos.find(t => t.id === id);
+    Alert.alert(
+      "Удаление элемента",
+      `Вы уверены, что хотите удалить "${todo.title}"`,
+      [
+        {
+          text: "Отмена",
+          style: "cancel"
+        },
+        {
+          text: "Удалить",
+          onPress: async () => {
+            changeScreen(null);
+            await Http.delete(
+              `https://learningapp-7e4bf.firebaseio.com/todos/${id}.json`
+            );
+            dispatch({ type: REMOVE_TODO, id });
+          }
+        }
+      ],
+      {
+        cancelable: false
+      }
+    );
+  };
+
+  const fetchTodos = async () => {
+    showLoader();
+    clearError();
+    try {
+      const data = await Http.get(
+        "https://learningapp-7e4bf.firebaseio.com/todos.json"
+      );
+      const todos = Object.keys(data).map(key => ({
+        ...data[key],
+        id: key
+      }));
+      dispatch({ type: FETCH_TODOS, todos });
+    } catch (e) {
+      showError("Опаньки...");
+      console.log(e);
+    } finally {
+      hideLoader();
     }
+  };
 
-    const removeTodo = id => {
-        const todo = state.todos.find(t => t.id === id);
-        Alert.alert(
-            "Удаление элемента", 
-            `Вы уверены, что хотите удалить "${todo.title}"`,
-            [
-                {
-                text: "Отмена", style: "cancel"
-                },
-                {
-                text: "Удалить",
-                onPress: () => {
-                    changeScreen(null);
-                    dispatch({type: REMOVE_TODO, id});
-                }
-                }
-            ],
-            {
-                cancelable: false
-            }
-            );         
+  // метод PATCH для изменения не всего объекта
+  // PUT для изменения всего объекта
+  const updateTodo = async (id, title) => {
+    clearError();
+    try {
+      await Http.patch(
+        `https://learningapp-7e4bf.firebaseio.com/todos/${id}.json`,
+        {
+          title
+        }
+      );
+      dispatch({ type: UPDATE_TODO, id, title });
+    } catch (e) {
+      showError("Опаньки...");
+      console.log(e);
     }
+  };
 
-    const fetchTodos = async () => {
-        showLoader();
-        const response = await fetch("https://learningapp-7e4bf.firebaseio.com/todos.json", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-        const data = await response.json();
-        console.log("Fetch data", data);
-        const todos = Object.keys(data).map(key => ({
-            ...data[key], id: key
-        }));
-        dispatch({type: FETCH_TODOS, todos});
-        hideLoader();
-    }
+  const showLoader = () => dispatch({ type: SHOW_LOADER });
 
-    const updateTodo = (id, title) => dispatch({type: UPDATE_TODO, id, title});
+  const hideLoader = () => dispatch({ type: HIDE_LOADER });
 
-    const showLoader = () => dispatch({type: SHOW_LOADER});
+  const showError = error => dispatch({ type: SHOW_ERROR, error });
 
-    const hideLoader = () => dispatch({type: HIDE_LOADER});
+  const clearError = () => dispatch({ type: CLEAR_ERROR });
 
-    const showError = (error) => dispatch ({type: SHOW_ERROR, error});
+  // Возвращаем контекст, объявленный как провайдер. В value передаем используемый функционал
+  // После чего в TodoState обернем все другие компоненты (childrens)
 
-    const clearError = () => dispatch({type: CLEAR_ERROR});
-
-    // Возвращаем контекст, объявленный как провайдер. В value передаем используемый функционал
-    // После чего в TodoState обернем все другие компоненты (childrens)
-
-    return <TodoContext.Provider value={{todos: state.todos, addTodo, removeTodo, updateTodo, fetchTodos, loading: state.loading, error: state.error}}>{children}</TodoContext.Provider>
-}
+  return (
+    <TodoContext.Provider
+      value={{
+        todos: state.todos,
+        addTodo,
+        removeTodo,
+        updateTodo,
+        fetchTodos,
+        loading: state.loading,
+        error: state.error
+      }}
+    >
+      {children}
+    </TodoContext.Provider>
+  );
+};
