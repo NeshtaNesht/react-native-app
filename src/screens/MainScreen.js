@@ -56,13 +56,14 @@ export const MainScreen = () => {
     </View>
   );
 
+  // Если объектов "нет", то рисуем картинку
   if (todos.length === 0) {
     content = (
       <View style={styles.imgWrap}>
         <Image
           style={styles.image}
           source={{
-            uri: "https://www.tint.or.th/attachments/article/3187/Manual-CI.png"
+            uri: "https://www.tint.or.th/attachments/article/3187/Manual-CI.png" // url картинки
           }}
         />
       </View>

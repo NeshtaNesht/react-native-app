@@ -27,6 +27,7 @@ export const TodoState = ({ children }) => {
 
   // Создание редюсера
   // useReducer(какой редюсер юзаем, т.е. todoReducer, initialState - начальное состояние)
+  // dispatch - метод для изменения стейта
   const [state, dispatch] = useReducer(todoReducer, initialState);
 
   // ф-ия addTodo, которую мы диспатчим. С помощью dispatch заявляем, что мы собираемся менять state
@@ -67,6 +68,7 @@ export const TodoState = ({ children }) => {
   };
 
   const fetchTodos = async () => {
+    // Показываем лоадер и чистим ошибки
     showLoader();
     clearError();
     try {

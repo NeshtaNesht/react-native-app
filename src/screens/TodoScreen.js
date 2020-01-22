@@ -11,8 +11,10 @@ import { ScreenContext } from "../context/screens/screenContext";
 
 export const TodoScreen = () => {
   // Используем контексты для вызова и использования нужных методов и объектов
+  // С помощью деструктуризации берем из контекстов нужные методы и поля
   const { todos, updateTodo, removeTodo } = useContext(TodoContext);
   const { todoId, changeScreen } = useContext(ScreenContext);
+  // Создание стейта и его сеттера
   const [modal, setModal] = useState(false);
 
   const todo = todos.find(t => t.id === todoId);
